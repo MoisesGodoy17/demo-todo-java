@@ -1,0 +1,76 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include: [ main ]   # cambia si usas otra rama principal
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerHubNamespace: 'moisesgodoy17'
+  imageName: 'todo-back'
+  dockerRegistryServiceConnection: 'docker'
+  azureServiceConnection: 'app-service-demo-java'
+  azureResourceGroup: 'demo-todo-java_group'
+  azureWebAppName: 'demo-todo-java'
+
+stages:
+# ========== BUILD & PUSH ==========
+- stage: Build_Push
+  displayName: Build & Push Docker image
+  jobs:
+  - job: build_push
+    steps:
+    - checkout: self
+      fetchDepth: 0
+    # Construir y empujar a Docker Hub
+    - task: Docker@2
+      displayName: "Docker build & push"
+      inputs:
+        containerRegistry: '$(dockerRegistryServiceConnection)'
+        repository: '$(dockerHubNamespace)/$(imageName)'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          $(SHORT_SHA)
+
+    # Exportar nombre completo de la imagen para el siguiente stage
+    - bash: |
+        echo "##vso[task.setvariable variable=FULL_IMAGE]$(dockerHubNamespace)/$(imageName):$(SHORT_SHA)"
+        echo "Pushed image -> $(dockerHubNamespace)/$(imageName):$(SHORT_SHA)"
+      displayName: "Export FULL_IMAGE"
+
+# ========== DEPLOY ==========
+- stage: Deploy
+  displayName: Deploy to Azure App Service (Container)
+  dependsOn: Build_Push
+  condition: succeeded()
+  jobs:
+  - job: deploy_job
+    steps:
+    # Actualizar el Web App para apuntar al nuevo tag
+    - task: AzureWebAppContainer@1
+      displayName: "Update Web App container image"
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        appName: '$(azureWebAppName)'
+        containers: '$(FULL_IMAGE)'
+
+    # Reiniciar para forzar el pull de la imagen nueva
+    - task: AzureCLI@2
+      displayName: "Restart Web App"
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az webapp restart -g "$(azureResourceGroup)" -n "$(azureWebAppName)"
