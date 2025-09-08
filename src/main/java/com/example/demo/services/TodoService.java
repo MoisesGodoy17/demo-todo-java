@@ -24,6 +24,10 @@ public class TodoService {
         return todoRepository.save(todoNew);
     }
 
+    public Iterable<TodoEntity> buscarPorEstado(String estado) {
+        return todoRepository.findByCompleted(estado);
+    }
+
     public Iterable<TodoEntity> getAllTodos() {
         return todoRepository.findAll();
     }

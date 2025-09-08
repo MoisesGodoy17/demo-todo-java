@@ -27,4 +27,10 @@ public class TodoController {
         Iterable<TodoEntity> todos = todoService.getAllTodos();
         return ResponseEntity.ok(todos);
     }
+
+    @PostMapping("/filtro-estado")
+    public ResponseEntity<Iterable<TodoEntity>> getTareasPorEstado(@RequestParam("estado") String estado) {
+        Iterable<TodoEntity> todos = todoService.buscarPorEstado(estado);
+        return ResponseEntity.ok(todos);
+    }
 }
