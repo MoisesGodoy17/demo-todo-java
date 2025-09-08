@@ -16,10 +16,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  dockerHubNamespace: 'moisesgodoy17'          # NO secreta
+  dockerHubNamespace: 'moisesgodoy17'
   imageName: 'todo-back'
-  dockerRegistryServiceConnection: 'docker'    # nombre de tu service connection a Docker Hub
-  azureServiceConnection: 'app-service-demo-java' # nombre de tu service connection a Azure (ARM)
+  dockerRegistryServiceConnection: 'docker'
+  azureServiceConnection: 'app-service-demo-java'
   azureResourceGroup: 'demo-todo-java_group'
   azureWebAppName: 'demo-todo-java'
 
@@ -41,16 +41,6 @@ stages:
         echo "Tag calculado: $SHORT"
       displayName: "Set SHORT_SHA"
 
-    # (Opcional) Verificación: que el repo quede bien formado
-    - bash: |
-        echo "Repo: $(dockerHubNamespace)/$(imageName)"
-        if echo "$(dockerHubNamespace)/$(imageName):$(SHORT_SHA)" | grep -Eq '^\S+/\S+:[A-Za-z0-9._-]+$'; then
-          echo "OK tag";
-        else
-          echo "Tag inválido"; exit 1;
-        fi
-      displayName: "Check repo/tag"
-
     # Construir y empujar a Docker Hub
     - task: Docker@2
       displayName: "Docker build & push (backend)"
@@ -58,7 +48,7 @@ stages:
         containerRegistry: '$(dockerRegistryServiceConnection)'
         repository: '$(dockerHubNamespace)/$(imageName)'
         command: 'buildAndPush'
-        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'   # ajusta si tu Dockerfile está en otra ruta
+        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
         buildContext: '$(Build.SourcesDirectory)'
         tags: |
           $(SHORT_SHA)
